@@ -15,7 +15,8 @@ pipeline {
         }
         stage("build jar") {
             steps {
-                script {
+                script { 
+                    sh 'mvn package'
                     echo "building jar"
                     gv.buildJar()
                 }
@@ -23,7 +24,8 @@ pipeline {
         }
         stage("build image") {
             steps {
-                script {
+                script { 
+                    sh 'docker build -t myapp:1.0 .'
                     echo "building image"
                     gv.buildImage()
                 }
@@ -31,7 +33,10 @@ pipeline {
         }
         stage("deploy") {
             steps {
-                script {
+                script { 
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', passwordVariable: 'passwd', usernameVariable: 'username')]) {
+    // some block
+}
                     echo "deploying"
                     gv.deployApp()
                 }
