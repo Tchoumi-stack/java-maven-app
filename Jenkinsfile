@@ -1,46 +1,96 @@
-def gv
-
 pipeline {
     agent any
+
     tools {
+        jdk 'jdk17'
         maven 'maven3'
+    } 
+    
+    environment {
+        SCANNER_HOME= tool 'sonar-scanner'
     }
+    
     stages {
-        stage("init") {
+        stage('Git checkout') {
+            steps {
+                git credentialsId: 'git-cred', url: 'https://github.com/Tchoumi-stack/java-maven-app.git'                    
+            }
+        }
+        stage('compile') {
+            steps {
+                sh 'mvn compile'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('file system scan') {
+            steps {
+                sh 'trivy fs .'
+            }
+        }    
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=java-maven-app -Dsonar.projectkey=java-maven-app \
+                          -Dsonar.java.binaries=. '''
+                }
+            }
+        }
+      stage('Quality Gate') {
             steps {
                 script {
-                    gv = load "script.groovy"
-                }
+                  waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
             }
         }
-        stage("build jar") {
+        stage('Build Artifact') {
             steps {
-                script { 
-                    sh 'mvn package'
-                    echo "building jar"
-                    gv.buildJar()
-                }
+                sh 'mvn package'
             }
         }
-        stage("build image") {
+        stage('Publish to Nexus') {
             steps {
-                script { 
-                    sh 'docker build -t myapp:1.0 .'
-                    echo "building image"
-                    gv.buildImage()
-                }
+                script {
+                    
+                } 
             }
         }
-        stage("deploy") {
+        stage('Build & Tag Image') {
             steps {
-                script { 
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', passwordVariable: 'passwd', usernameVariable: 'username')]) {
-    // some block
-}
-                    echo "deploying"
-                    gv.deployApp()
-                }
+                script {
+
+                      sh 'docker build -t minelva298/java-maven-app:1.0 .'
+                
+                }    
             }
         }
-    }   
-}
+        stage('Docker Scan Image') {
+            steps {
+                sh 'trivy image minelva298/java-maven-app:1.0 .'
+            }
+        }
+        stage('Docker push image') {
+            steps {
+                script {
+                    
+                 sh 'docker push minelva298/java-maven-app:1.0'
+            }
+        }
+          stage('Deploy To Kubernetes') {
+            steps {
+                script {
+                sh 'kubectl apply -f deployment.yaml'
+            }
+        }
+         stage('Verify The Deployment') {
+            steps {
+                script {
+                    sh 'kubectl get pods -n webapp'
+                    sh 'kubectl get svc -n webapp'
+                sh 'trivy fs .'
+            }
+        }
+             
+         
