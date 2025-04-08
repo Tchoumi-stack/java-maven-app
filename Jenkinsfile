@@ -55,7 +55,7 @@ pipeline {
         }
         stage('Build & Tag Docker Image') {
             steps {
-                withDockerRegistry(credentialsId: 'dockerhub-cred', toolName: 'docker') {
+                withDockerRegistry(credentialsId: 'dockerhub-cred', url: '') {
                     sh 'docker build -t minelva298/java-maven-app:1.0 .'
                 }
             }
@@ -68,7 +68,7 @@ pipeline {
         stage('Docker Push Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'dockerhub-cred', toolName: 'docker') {
+                    withDockerRegistry(credentialsId: 'dockerhub-cred', url: '') {
                         sh 'docker push minelva298/java-maven-app:1.0'
                     }
                 }
