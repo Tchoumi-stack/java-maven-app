@@ -95,9 +95,11 @@
                 withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8s-cred', namespace: 'webapp', restrictKubeConfigAccess: false, serverUrl: ' https://172.31.47.56:6443') {
                           sh 'kubectl get pods -n webapp'
                           sh 'kubectl get svc -n webapp'
-                    }
-              }
-         }
+                     }
+            }
+        }
                 
-             
+
+                
          
+        }            
