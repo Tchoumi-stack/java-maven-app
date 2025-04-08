@@ -7,7 +7,14 @@ pipeline {
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
     }
+    
     stages {
+        stage('Build') {
+            steps {
+                sh 'chmod +x gradlew'
+                sh './gradlew build'
+            }
+        }
         stage('Git checkout') {
             steps {
                 git credentialsId: 'git-cred', url: 'https://github.com/Tchoumi-stack/java-maven-app.git'
