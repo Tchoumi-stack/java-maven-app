@@ -1,4 +1,5 @@
-pipeline {
+    
+  pipeline {
     agent any
 
     tools {
@@ -39,7 +40,7 @@ pipeline {
                 }
             }
         }
-      stage('Quality Gate') {
+        stage('Quality Gate') {
             steps {
                 script {
                   waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
@@ -53,16 +54,18 @@ pipeline {
         stage('Publish to Nexus') {
             steps {
                 script {
-                    
-                } 
+                  withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
+                            sh 'mvn deploy'
+                   }
+                }
             }
         }
-        stage('Build & Tag Image') {
+        stage('Build & Tag Docker Image') {
             steps {
                 script {
-
-                      sh 'docker build -t minelva298/java-maven-app:1.0 .'
-                
+                   withDockerRegistry(credentialsId: 'dockerhub-cred', toolName: 'docker') {
+                            sh 'docker build -t minelva298/java-maven-app:1.0 .'
+                   }
                 }    
             }
         }
@@ -74,23 +77,27 @@ pipeline {
         stage('Docker push image') {
             steps {
                 script {
-                    
-                 sh 'docker push minelva298/java-maven-app:1.0'
+                  withDockerRegistry(credentialsId: 'dockerhub-cred', toolName: 'docker') {   
+                  sh 'docker push minelva298/java-maven-app:1.0'
+                  }
+                }
             }
-        }
-          stage('Deploy To Kubernetes') {
+        }   
+        stage('Deploy To Kubernetes') {
             steps {
-                script {
-                sh 'kubectl apply -f deployment.yaml'
+                withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8s-cred', namespace: 'webapp', restrictKubeConfigAccess: false, serverUrl: ' https://172.31.47.56:6443') {
+                          sh 'kubectl apply -f deployment.yaml'
+                }
             }
         }
-         stage('Verify The Deployment') {
+        stage('verify the deployment') {
             steps {
-                script {
-                    sh 'kubectl get pods -n webapp'
-                    sh 'kubectl get svc -n webapp'
-                sh 'trivy fs .'
-            }
-        }
+                withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8s-cred', namespace: 'webapp', restrictKubeConfigAccess: false, serverUrl: ' https://172.31.47.56:6443') {
+                          sh 'kubectl get pods -n webapp'
+                          sh 'kubectl get svc -n webapp'
+                    }
+              }
+         }
+                
              
          
